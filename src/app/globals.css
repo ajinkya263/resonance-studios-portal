@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream text-indigo-800 font-sans antialiased;
+  }
+  /* Selection styled in brand saffron */
+  ::selection {
+    @apply bg-saffron-200 text-indigo-900;
+  }
+}
+
+@layer components {
+  /* Reusable "raga card" surface used across dashboard + lessons */
+  .surface {
+    @apply rounded-2xl border border-cream-200 bg-white/80 backdrop-blur-sm shadow-card;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-700
+           px-5 py-2.5 font-medium text-cream-50 transition
+           hover:bg-indigo-600 focus:outline-none focus:ring-2
+           focus:ring-saffron-400 focus:ring-offset-2 focus:ring-offset-cream
+           disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border
+           border-indigo-200 bg-white px-5 py-2.5 font-medium text-indigo-700
+           transition hover:border-saffron-400 hover:text-indigo-900
+           focus:outline-none focus:ring-2 focus:ring-saffron-400;
+  }
+
+  /* Thin gold divider used under section headings */
+  .gold-rule {
+    @apply h-px w-16 bg-gradient-to-r from-saffron-400 to-transparent;
+  }
+}
+
+/* Custom scrollbar — subtle, on-brand */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d9d2ef;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b4a6df;
+}
