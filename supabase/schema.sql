@@ -173,6 +173,26 @@ create policy "admin manage overrides" on public.user_overrides for all
 
 
 -- ============================================================================
+--  DATA API GRANTS
+--  PostgREST connects as the `anon` / `authenticated` roles. They need table
+--  privileges to reach the API at all — Row Level Security (above) still
+--  governs which ROWS each role can actually see or change.
+-- ============================================================================
+grant usage on schema public to anon, authenticated;
+
+grant select, insert, update, delete
+  on all tables in schema public to anon, authenticated;
+grant usage, select
+  on all sequences in schema public to anon, authenticated;
+
+-- Apply the same to any tables/sequences created later.
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to anon, authenticated;
+alter default privileges in schema public
+  grant usage, select on sequences to anon, authenticated;
+
+
+-- ============================================================================
 --  SEED DATA  (safe to delete — here so the UI isn't empty on first run)
 -- ============================================================================
 insert into public.modules (title, description, unlock_delay_days, order_index) values

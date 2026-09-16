@@ -8,7 +8,8 @@ import {
   Volume2,
   ImageOff,
 } from "lucide-react";
-import MediaTypeIcon, { mediaTypeLabel } from "@/components/MediaTypeIcon";
+import MediaTypeIcon, { mediaTypeLabel, lessonKind } from "@/components/MediaTypeIcon";
+import { getInteractiveWidget } from "@/components/interactive/registry";
 
 /**
  * Renders a lesson's body according to its media_type:
@@ -42,8 +43,8 @@ export default function LessonViewer({ lesson, module, siblings = [] }) {
       {/* Header */}
       <div className="mb-6">
         <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
-          <MediaTypeIcon type={lesson.media_type} size={13} />
-          {mediaTypeLabel(lesson.media_type)} · {module?.title}
+          <MediaTypeIcon type={lessonKind(lesson)} size={13} />
+          {mediaTypeLabel(lessonKind(lesson))} · {module?.title}
         </p>
         <h1 className="font-display text-3xl text-indigo-900 md:text-4xl">
           {lesson.title}
@@ -89,6 +90,17 @@ export default function LessonViewer({ lesson, module, siblings = [] }) {
 
 /* ── Dispatcher ──────────────────────────────────────────────────────────── */
 function LessonBody({ lesson }) {
+  // Interactive widgets (media_url = "interactive:<key>") take priority.
+  const Widget = getInteractiveWidget(lesson.media_url);
+  if (Widget) {
+    return (
+      <div className="space-y-6">
+        {lesson.text_content && <RichText content={lesson.text_content} />}
+        <Widget />
+      </div>
+    );
+  }
+
   switch (lesson.media_type) {
     case "video":
       return <VideoPlayer url={lesson.media_url} title={lesson.title} />;
@@ -219,12 +231,32 @@ function ImageGallery({ url, title }) {
  */
 function RichText({ content }) {
   if (!content) return <Empty label="No written content yet." />;
-  const paragraphs = content.split(/\n{2,}/);
+  // Split on ``` fences — odd-indexed segments are code blocks.
+  const segments = content.split(/```/);
   return (
     <div className="space-y-4 text-[15px] leading-relaxed text-indigo-700">
-      {paragraphs.map((p, i) => (
-        <p key={i} dangerouslySetInnerHTML={{ __html: inlineFormat(p) }} />
-      ))}
+      {segments.map((seg, idx) => {
+        if (idx % 2 === 1) {
+          return (
+            <pre
+              key={idx}
+              className="overflow-x-auto rounded-lg bg-indigo-900 p-4 font-mono text-[13px] leading-relaxed text-cream-50"
+            >
+              {seg.replace(/^\n+/, "").replace(/\n+$/, "")}
+            </pre>
+          );
+        }
+        return seg
+          .split(/\n{2,}/)
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .map((p, i) => (
+            <p
+              key={`${idx}-${i}`}
+              dangerouslySetInnerHTML={{ __html: inlineFormat(p) }}
+            />
+          ));
+      })}
     </div>
   );
 }

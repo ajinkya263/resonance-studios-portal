@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Lock, Clock, ChevronRight, Sparkles } from "lucide-react";
-import MediaTypeIcon, { mediaTypeLabel } from "@/components/MediaTypeIcon";
+import MediaTypeIcon, { mediaTypeLabel, lessonKind } from "@/components/MediaTypeIcon";
 
 /**
  * A single module card for the dashboard grid.
@@ -62,11 +62,11 @@ export default function ModuleCard({ module, lessons = [] }) {
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-indigo-700 transition hover:bg-cream-100"
           >
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-indigo-50 text-indigo-600">
-              <MediaTypeIcon type={lesson.media_type} size={15} />
+              <MediaTypeIcon type={lessonKind(lesson)} size={15} />
             </span>
             <span className="flex-1 truncate">{lesson.title}</span>
             <span className="text-[11px] uppercase tracking-wide text-indigo-300">
-              {mediaTypeLabel(lesson.media_type)}
+              {mediaTypeLabel(lessonKind(lesson))}
             </span>
             <ChevronRight
               size={16}

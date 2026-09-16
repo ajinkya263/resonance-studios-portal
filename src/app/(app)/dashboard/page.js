@@ -17,7 +17,7 @@ export default async function DashboardPage() {
     const supabase = createClient();
     const { data: lessons = [] } = await supabase
       .from("lessons")
-      .select("id, module_id, title, media_type, order_index")
+      .select("id, module_id, title, media_type, media_url, order_index")
       .in("module_id", unlockedIds)
       .order("order_index", { ascending: true });
 

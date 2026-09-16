@@ -97,14 +97,19 @@ export default function Sidebar({ modules = [], profile, isAdmin = false }) {
           )}
 
           {isAdmin && (
-            <NavItem
-              href="/dashboard"
-              icon={<ShieldCheck size={18} />}
-              label="Admin — all content"
-              active={false}
-              onClick={() => setOpen(false)}
-              badge="ADMIN"
-            />
+            <>
+              <p className="px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-indigo-300">
+                Teaching
+              </p>
+              <NavItem
+                href="/admin"
+                icon={<ShieldCheck size={18} />}
+                label="Admin Console"
+                active={pathname === "/admin"}
+                onClick={() => setOpen(false)}
+                badge="ADMIN"
+              />
+            </>
           )}
         </nav>
 
