@@ -112,7 +112,7 @@ export async function getLessonIfUnlocked(lessonId) {
 
   const { data: lesson } = await supabase
     .from("lessons")
-    .select("id, module_id, title, media_type, media_url, text_content, order_index")
+    .select("id, module_id, title, media_type, media_url, text_content, video_url, order_index")
     .eq("id", lessonId)
     .single();
 

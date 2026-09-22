@@ -1,23 +1,22 @@
-import TeentaalTrainer from "./TeentaalTrainer";
+"use client";
+
+import { interactiveKey } from "@/components/interactive/keys";
+import TeentaalTrainer from "@/components/interactive/TeentaalTrainer";
+import TablaAnatomy from "@/components/interactive/TablaAnatomy";
+import BolLesson from "@/components/interactive/BolLesson";
 
 /**
- * Registry of interactive lesson widgets.
- * A lesson becomes interactive when its `media_url` is `interactive:<key>`.
- * Add new widgets here as you build them.
+ * Turn a lesson's media_url into the interactive React element, or null.
+ * Supported keys:
+ *   teentaal-trainer
+ *   anatomy
+ *   bol:<slug>          (ta, tin, ge, ka, kat, dha, dhin, tete, tu)
  */
-export const INTERACTIVE_WIDGETS = {
-  "teentaal-trainer": TeentaalTrainer,
-};
-
-/** Parse `interactive:<key>` → key, else null. */
-export function interactiveKey(mediaUrl) {
-  if (typeof mediaUrl === "string" && mediaUrl.startsWith("interactive:")) {
-    return mediaUrl.slice("interactive:".length);
-  }
-  return null;
-}
-
-export function getInteractiveWidget(mediaUrl) {
+export function renderInteractive(mediaUrl) {
   const key = interactiveKey(mediaUrl);
-  return key ? INTERACTIVE_WIDGETS[key] || null : null;
+  if (!key) return null;
+  if (key === "teentaal-trainer") return <TeentaalTrainer />;
+  if (key === "anatomy") return <TablaAnatomy />;
+  if (key.startsWith("bol:")) return <BolLesson slug={key.slice(4)} />;
+  return null;
 }

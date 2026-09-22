@@ -9,7 +9,7 @@ import {
   ImageOff,
 } from "lucide-react";
 import MediaTypeIcon, { mediaTypeLabel, lessonKind } from "@/components/MediaTypeIcon";
-import { getInteractiveWidget } from "@/components/interactive/registry";
+import { renderInteractive } from "@/components/interactive/registry";
 
 /**
  * Renders a lesson's body according to its media_type:
@@ -52,6 +52,15 @@ export default function LessonViewer({ lesson, module, siblings = [] }) {
         <div className="gold-rule mt-3" />
       </div>
 
+      {/* Companion video — attach a URL to lesson.video_url to show a lesson
+          video alongside interactive/text content. */}
+      {lesson.video_url && (
+        <div className="surface mb-6 animate-fade-up p-4 md:p-6">
+          <h2 className="mb-3 font-display text-lg text-indigo-800">Watch</h2>
+          <VideoPlayer url={lesson.video_url} title={lesson.title} />
+        </div>
+      )}
+
       {/* Body */}
       <div className="surface p-4 md:p-6">
         <LessonBody lesson={lesson} />
@@ -91,12 +100,12 @@ export default function LessonViewer({ lesson, module, siblings = [] }) {
 /* ── Dispatcher ──────────────────────────────────────────────────────────── */
 function LessonBody({ lesson }) {
   // Interactive widgets (media_url = "interactive:<key>") take priority.
-  const Widget = getInteractiveWidget(lesson.media_url);
-  if (Widget) {
+  const interactive = renderInteractive(lesson.media_url);
+  if (interactive) {
     return (
       <div className="space-y-6">
         {lesson.text_content && <RichText content={lesson.text_content} />}
-        <Widget />
+        {interactive}
       </div>
     );
   }

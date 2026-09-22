@@ -1,5 +1,5 @@
 import { Video, Music, FileText, Image as ImageIcon, BookOpen, Activity } from "lucide-react";
-import { interactiveKey } from "@/components/interactive/registry";
+import { interactiveKey } from "@/components/interactive/keys";
 
 /**
  * Effective "kind" of a lesson. Interactive lessons are stored as media_type
