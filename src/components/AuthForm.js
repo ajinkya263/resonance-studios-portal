@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, User, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { SITE_URL } from "@/lib/config";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -16,9 +17,7 @@ export default function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null); // { type, text }
 
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (typeof window !== "undefined" ? window.location.origin : "");
+  const siteUrl = SITE_URL;
 
   async function handleEmail(e) {
     e.preventDefault();

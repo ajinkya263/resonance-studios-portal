@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/config";
 
 /**
  * Refreshes the Supabase auth session on every request and guards routes.
@@ -9,8 +10,8 @@ export async function updateSession(request) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
