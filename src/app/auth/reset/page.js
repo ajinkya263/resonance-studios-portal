@@ -16,31 +16,18 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  // The recovery link lands here with a ?code=… — exchange it for a temporary
-  // session, then show the form.
+  // /auth/recovery has already exchanged the code and set the recovery session
+  // (or redirected here with ?error). We just confirm the session exists.
   useEffect(() => {
     let active = true;
     async function init() {
-      try {
-        const url = new URL(window.location.href);
-        if (url.searchParams.get("error_description")) {
-          if (active) setStatus("invalid");
-          return;
-        }
-        const code = url.searchParams.get("code");
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          window.history.replaceState({}, document.title, "/auth/reset");
-          if (error) {
-            if (active) setStatus("invalid");
-            return;
-          }
-        }
-        const { data } = await supabase.auth.getUser();
-        if (active) setStatus(data?.user ? "ready" : "invalid");
-      } catch {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("error")) {
         if (active) setStatus("invalid");
+        return;
       }
+      const { data } = await supabase.auth.getUser();
+      if (active) setStatus(data?.user ? "ready" : "invalid");
     }
     init();
     return () => {
