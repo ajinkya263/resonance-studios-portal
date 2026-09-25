@@ -1,21 +1,19 @@
 "use client";
 
-import { useRef } from "react";
-import { Volume2, Hand, Waves, Target } from "lucide-react";
+import { Hand, Waves, Target } from "lucide-react";
 import TablaDiagram from "@/components/interactive/TablaDiagram";
 
 /**
- * One page per bol. Data-driven: media_url = `interactive:bol:<slug>`.
- * Shows an animated tabla diagram with the strike zone, the technique, a
- * practice pattern, and a "hear it" synth approximation (until real audio /
- * video is attached to the lesson).
+ * Bol page(s). media_url = `interactive:bol:<slug>`.
+ * A slug may be a single bol ("ta") or a merged group ("ka-kat", "dha-dhin"),
+ * in which case both bols render on one page (they share a tutorial video).
  */
 
 const BOLS = {
   ta: {
     name: "Ta", alt: "Na", dev: "ता", hand: "Dayan · right hand",
     highlights: [{ drum: "dayan", zone: "kinar" }],
-    sound: "Sharp, ringing and open", tone: "high",
+    sound: "Sharp, ringing and open",
     steps: [
       "Strike the Kinar (the outer rim of the skin) with a stiff index finger.",
       "Strike and lift immediately — don't let the finger rest.",
@@ -26,7 +24,7 @@ const BOLS = {
   tin: {
     name: "Tin", dev: "तिं", hand: "Dayan · right hand",
     highlights: [{ drum: "dayan", zone: "maidan" }],
-    sound: "Ringing and open, rounder than Ta", tone: "high",
+    sound: "Ringing and open, rounder than Ta",
     steps: [
       "Strike the Maidan (the skin between the syahi and the rim) with the index finger.",
       "Lift immediately so the note rings out.",
@@ -36,7 +34,7 @@ const BOLS = {
   ge: {
     name: "Ge", alt: "Ga", dev: "गे", hand: "Bayan · left hand",
     highlights: [{ drum: "bayan", zone: "maidan" }],
-    sound: "Open, resonant bass — a deep boom", tone: "bass-open",
+    sound: "Open, resonant bass — a deep boom",
     steps: [
       "Rest your wrist on the drum, fingers relaxed.",
       "Strike the skin with your index or middle finger and let it resonate.",
@@ -47,7 +45,7 @@ const BOLS = {
   ka: {
     name: "Ka", alt: "Ke", dev: "के", hand: "Bayan · left hand",
     highlights: [{ drum: "bayan", zone: "syahi" }],
-    sound: "Closed, muted bass — a flat thud", tone: "bass-closed",
+    sound: "Closed, muted bass — a flat thud",
     steps: [
       "Strike the skin with a flat palm / fingers.",
       "Do NOT lift — keep contact to mute the sound.",
@@ -58,7 +56,7 @@ const BOLS = {
   kat: {
     name: "Kat", dev: "कत्", hand: "Bayan · left hand",
     highlights: [{ drum: "bayan", zone: "syahi" }],
-    sound: "Closed, muted bass (palm lifted first)", tone: "bass-closed",
+    sound: "Closed, muted bass (palm lifted first)",
     steps: [
       "Remove your palm from the drum entirely.",
       "Then play Ka — strike flat and keep contact to mute.",
@@ -68,7 +66,7 @@ const BOLS = {
   dha: {
     name: "Dha", dev: "धा", hand: "Both hands", combo: "Ge + Ta",
     highlights: [{ drum: "bayan", zone: "maidan" }, { drum: "dayan", zone: "kinar" }],
-    sound: "The full, powerful signature bol", tone: "bass-open",
+    sound: "The full, powerful signature bol",
     steps: [
       "Play Ge (left) and Ta (right) at exactly the same instant.",
       "Aim for one single, combined, powerful sound — not two.",
@@ -78,7 +76,7 @@ const BOLS = {
   dhin: {
     name: "Dhin", dev: "धिं", hand: "Both hands", combo: "Ge + Tin",
     highlights: [{ drum: "bayan", zone: "maidan" }, { drum: "dayan", zone: "maidan" }],
-    sound: "Resonant and open — Ge joined with Tin", tone: "bass-open",
+    sound: "Resonant and open — Ge joined with Tin",
     steps: [
       "Play Ge (left) and Tin (right) together.",
       "Both should ring as one open, resonant note.",
@@ -88,7 +86,7 @@ const BOLS = {
   tete: {
     name: "TeTe", dev: "तेटे", hand: "Dayan · right hand",
     highlights: [{ drum: "dayan", zone: "syahi" }],
-    sound: "Closed, dry — two fingers on the syahi", tone: "closed",
+    sound: "Closed, dry — two fingers on the syahi",
     steps: [
       "Strike the middle of the syahi with your index and middle finger.",
       "Keep it closed for a short, dry sound.",
@@ -98,17 +96,23 @@ const BOLS = {
   tu: {
     name: "Tu", dev: "तू", hand: "Dayan · right hand",
     highlights: [{ drum: "dayan", zone: "syahi" }],
-    sound: "Open — a single finger on the syahi", tone: "high",
+    sound: "Open — a single finger on the syahi",
     steps: ["Strike the middle of the syahi with the index finger for an open ring."],
     practice: ["Tu", "Tu", "Tu", "Tu"],
   },
 };
 
-export default function BolLesson({ slug }) {
-  const bol = BOLS[slug];
-  const ctxRef = useRef(null);
+/** Merged pages that share one tutorial video. */
+const GROUPS = {
+  "ka-kat": ["ka", "kat"],
+  "dha-dhin": ["dha", "dhin"],
+};
 
-  if (!bol) {
+export default function BolLesson({ slug }) {
+  const slugs = GROUPS[slug] || [slug];
+  const known = slugs.filter((s) => BOLS[s]);
+
+  if (known.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-indigo-200 bg-cream-50 p-8 text-center text-indigo-400">
         Unknown bol: {slug}
@@ -116,42 +120,28 @@ export default function BolLesson({ slug }) {
     );
   }
 
-  function play() {
-    let ctx = ctxRef.current;
-    if (!ctx) {
-      ctx = new (window.AudioContext || window.webkitAudioContext)();
-      ctxRef.current = ctx;
-    }
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const spec = {
-      high: { f: 620, type: "triangle", dur: 0.35, peak: 0.35 },
-      "bass-open": { f: 130, type: "sine", dur: 0.7, peak: 0.5 },
-      "bass-closed": { f: 110, type: "sine", dur: 0.12, peak: 0.4 },
-      closed: { f: 300, type: "square", dur: 0.09, peak: 0.25 },
-    }[bol.tone] || { f: 440, type: "sine", dur: 0.3, peak: 0.3 };
+  return (
+    <div className="space-y-6">
+      {known.map((s, i) => (
+        <BolCard key={s} bol={BOLS[s]} index={i} />
+      ))}
+    </div>
+  );
+}
 
-    osc.type = spec.type;
-    osc.frequency.setValueAtTime(spec.f, t);
-    if (spec.type === "triangle") osc.frequency.exponentialRampToValueAtTime(spec.f * 0.8, t + spec.dur);
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(spec.peak, t + 0.006);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + spec.dur);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + spec.dur + 0.05);
-  }
-
+function BolCard({ bol, index }) {
   const delay = (i) => ({ animationDelay: `${i * 90}ms` });
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-cream-200 bg-gradient-to-br from-cream-50 to-cream-100">
+    <div
+      className="animate-fade-up overflow-hidden rounded-2xl border border-cream-200 bg-gradient-to-br from-cream-50 to-cream-100"
+      style={{ animationDelay: `${index * 120}ms` }}
+    >
       <div className="grid gap-6 p-6 md:grid-cols-2 md:p-8">
         {/* Left: identity + diagram */}
-        <div className="animate-fade-up">
+        <div>
           <div className="flex items-end gap-4">
-            <span className="font-display text-6xl leading-none text-indigo-800">
+            <span className="animate-pop bg-gradient-to-br from-indigo-800 via-indigo-600 to-saffron-500 bg-clip-text font-display text-7xl leading-none text-transparent">
               {bol.name}
             </span>
             <span className="pb-1 font-display text-3xl text-saffron-500">{bol.dev}</span>
@@ -160,16 +150,14 @@ export default function BolLesson({ slug }) {
             <p className="mt-1 text-sm text-indigo-400">also called “{bol.alt}”</p>
           )}
 
-          <div className="mt-5 rounded-xl bg-white/70 p-3">
-            <TablaDiagram highlights={bol.highlights} className="mx-auto h-48 w-full" />
+          <div className="group relative mt-5 rounded-xl bg-white/70 p-3 shadow-card ring-1 ring-cream-200 transition duration-500 hover:shadow-soft hover:ring-saffron-300/60">
+            {/* soft animated halo */}
+            <div className="pointer-events-none absolute inset-0 animate-glow rounded-xl" />
+            <TablaDiagram
+              highlights={bol.highlights}
+              className="relative mx-auto h-48 w-full"
+            />
           </div>
-
-          <button onClick={play} className="btn-primary mt-4 w-full">
-            <Volume2 size={18} /> Hear it
-          </button>
-          <p className="mt-2 text-center text-[11px] text-indigo-400">
-            Synth preview — a demonstration video can be added to this lesson.
-          </p>
         </div>
 
         {/* Right: details */}
@@ -208,7 +196,7 @@ export default function BolLesson({ slug }) {
               {bol.practice.map((p, i) => (
                 <span
                   key={i}
-                  className="rounded-lg bg-indigo-700 px-4 py-2 font-display text-lg text-cream-50 transition hover:bg-indigo-600"
+                  className="rounded-lg bg-indigo-700 px-4 py-2 font-display text-lg text-cream-50 transition duration-200 hover:-translate-y-0.5 hover:bg-indigo-600"
                 >
                   {p}
                 </span>

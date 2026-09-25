@@ -29,13 +29,14 @@ export default function LoginPage() {
           © {new Date().getFullYear()} Resonance Studios · Tabla Vidya
         </p>
 
-        {/* decorative arc */}
-        <div className="pointer-events-none absolute -right-24 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full border-[24px] border-saffron-400/10" />
+        {/* decorative rotating arc + glow */}
+        <div className="pointer-events-none absolute -right-24 top-1/2 h-96 w-96 -translate-y-1/2 animate-spin-slow rounded-full border-[24px] border-saffron-400/10" />
+        <div className="pointer-events-none absolute -bottom-20 -left-16 h-80 w-80 animate-float rounded-full bg-saffron-400/10 blur-3xl" />
       </section>
 
       {/* Right: auth form */}
       <section className="flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md animate-fade-up">
           {/* Mobile brand */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <span className="grid h-11 w-11 place-items-center rounded-full bg-saffron-400 font-display text-xl text-indigo-900">

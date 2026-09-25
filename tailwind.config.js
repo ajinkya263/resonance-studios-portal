@@ -56,9 +56,44 @@ module.exports = {
           "0%": { opacity: "0", transform: "translateY(12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        float: {
+          "0%,100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "gradient-pan": {
+          "0%,100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+        glow: {
+          "0%,100%": { boxShadow: "0 0 0 0 rgba(244,163,0,0)" },
+          "50%": { boxShadow: "0 0 28px 4px rgba(244,163,0,0.35)" },
+        },
+        "spin-slow": {
+          to: { transform: "rotate(360deg)" },
+        },
+        ripple: {
+          "0%": { transform: "scale(0.7)", opacity: "0.55" },
+          "100%": { transform: "scale(2.4)", opacity: "0" },
+        },
+        pop: {
+          "0%": { opacity: "0", transform: "scale(0.9)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
       },
       animation: {
-        "fade-up": "fade-up 0.5s ease-out both",
+        "fade-up": "fade-up 0.6s ease-out both",
+        float: "float 6s ease-in-out infinite",
+        shimmer: "shimmer 3s linear infinite",
+        gradient: "gradient-pan 8s ease infinite",
+        glow: "glow 3.5s ease-in-out infinite",
+        "spin-slow": "spin-slow 120s linear infinite",
+        "spin-slow-reverse": "spin-slow 90s linear infinite reverse",
+        ripple: "ripple 2.6s ease-out infinite",
+        pop: "pop 0.4s ease-out both",
       },
     },
   },

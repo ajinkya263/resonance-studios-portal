@@ -23,8 +23,9 @@
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-700
-           px-5 py-2.5 font-medium text-cream-50 transition
-           hover:bg-indigo-600 focus:outline-none focus:ring-2
+           px-5 py-2.5 font-medium text-cream-50 transition-all duration-200
+           hover:bg-indigo-600 hover:shadow-soft active:scale-[0.97]
+           focus:outline-none focus:ring-2
            focus:ring-saffron-400 focus:ring-offset-2 focus:ring-offset-cream
            disabled:cursor-not-allowed disabled:opacity-60;
   }
@@ -42,6 +43,48 @@
   }
 }
 
+@layer components {
+  /* Animated saffron→indigo gradient text for headlines */
+  .text-gradient {
+    @apply bg-gradient-to-r from-saffron-500 via-indigo-600 to-saffron-500 bg-clip-text text-transparent;
+    background-size: 200% auto;
+    animation: shimmer 6s linear infinite;
+  }
+
+  /* Card lift + gold ring on hover */
+  .card-hover {
+    @apply transition-all duration-300 ease-out will-change-transform;
+  }
+  .card-hover:hover {
+    @apply -translate-y-1.5 border-saffron-300/70 shadow-soft;
+  }
+
+  /* Gold shine sweep across a surface on hover */
+  .shine {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transform: translateX(-120%) skewX(-18deg);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.35),
+      transparent
+    );
+    transition: transform 0.7s ease;
+    z-index: 1;
+  }
+  .shine:hover::after {
+    transform: translateX(120%) skewX(-18deg);
+  }
+}
+
 /* Custom scrollbar — subtle, on-brand */
 ::-webkit-scrollbar {
   width: 10px;
@@ -53,4 +96,15 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #b4a6df;
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

@@ -14,6 +14,13 @@ export default function MandalaBackground() {
       {/* Warm vertical wash so the cream never looks flat */}
       <div className="absolute inset-0 bg-gradient-to-b from-cream-50 via-cream to-cream-200" />
 
+      {/* Soft drifting colour glows */}
+      <div className="absolute -left-32 top-24 h-96 w-96 animate-float rounded-full bg-saffron-300/20 blur-3xl" />
+      <div
+        className="absolute -right-24 bottom-10 h-[28rem] w-[28rem] animate-float rounded-full bg-indigo-300/20 blur-3xl"
+        style={{ animationDelay: "2s" }}
+      />
+
       {/* Repeating floral lattice */}
       <svg className="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -37,10 +44,10 @@ export default function MandalaBackground() {
         <rect width="100%" height="100%" fill="url(#floral-lattice)" />
       </svg>
 
-      {/* Top-right mandala */}
-      <Mandala className="absolute -right-24 -top-24 h-[26rem] w-[26rem] text-saffron-400/20" />
-      {/* Bottom-left mandala */}
-      <Mandala className="absolute -bottom-32 -left-24 h-[30rem] w-[30rem] text-indigo-400/10" />
+      {/* Top-right mandala — slowly rotating */}
+      <Mandala className="absolute -right-24 -top-24 h-[26rem] w-[26rem] animate-spin-slow text-saffron-400/20" />
+      {/* Bottom-left mandala — counter-rotating */}
+      <Mandala className="absolute -bottom-32 -left-24 h-[30rem] w-[30rem] animate-spin-slow-reverse text-indigo-400/10" />
     </div>
   );
 }

@@ -37,8 +37,10 @@ export default function ModuleCard({ module, lessons = [] }) {
   return (
     <article
       id={`module-${module.id}`}
-      className="surface group flex flex-col overflow-hidden p-6 transition hover:-translate-y-0.5 hover:shadow-soft"
+      className="surface card-hover shine group relative flex flex-col overflow-hidden p-6"
     >
+      {/* gradient accent that reveals on hover */}
+      <span className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-saffron-400 via-saffron-300 to-transparent transition-transform duration-500 group-hover:scale-x-100" />
       <div className="mb-1 flex items-start justify-between gap-3">
         <h3 className="font-display text-xl text-indigo-800">{module.title}</h3>
         {module.unlockedByOverride && (
@@ -59,7 +61,7 @@ export default function ModuleCard({ module, lessons = [] }) {
           <Link
             key={lesson.id}
             href={`/lessons/${lesson.id}`}
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-indigo-700 transition hover:bg-cream-100"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-indigo-700 transition-all duration-200 hover:translate-x-1 hover:bg-cream-100"
           >
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-indigo-50 text-indigo-600">
               <MediaTypeIcon type={lessonKind(lesson)} size={15} />

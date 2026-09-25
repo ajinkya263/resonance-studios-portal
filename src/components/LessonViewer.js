@@ -7,6 +7,7 @@ import {
   Download,
   Volume2,
   ImageOff,
+  Play,
 } from "lucide-react";
 import MediaTypeIcon, { mediaTypeLabel, lessonKind } from "@/components/MediaTypeIcon";
 import { renderInteractive } from "@/components/interactive/registry";
@@ -56,8 +57,15 @@ export default function LessonViewer({ lesson, module, siblings = [] }) {
           video alongside interactive/text content. */}
       {lesson.video_url && (
         <div className="surface mb-6 animate-fade-up p-4 md:p-6">
-          <h2 className="mb-3 font-display text-lg text-indigo-800">Watch</h2>
-          <VideoPlayer url={lesson.video_url} title={lesson.title} />
+          <h2 className="mb-3 flex items-center gap-2 font-display text-lg text-indigo-800">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-saffron-400 text-indigo-900">
+              <Play size={13} className="translate-x-px" fill="currentColor" />
+            </span>
+            Watch
+          </h2>
+          <div className="overflow-hidden rounded-xl shadow-soft ring-1 ring-cream-200 transition duration-500 hover:ring-saffron-300/60">
+            <VideoPlayer url={lesson.video_url} title={lesson.title} />
+          </div>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getModulesForCurrentUser } from "@/lib/access";
 import ModuleCard from "@/components/ModuleCard";
+import Reveal from "@/components/Reveal";
 import { Sparkles, Music4 } from "lucide-react";
 
 export const metadata = { title: "Dashboard — Resonance Studios" };
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
             {isAdmin ? "Admin view — all content unlocked" : "Your practice path"}
           </p>
           <h1 className="font-display text-3xl text-indigo-900 md:text-4xl">
-            Namaste, {firstName} 🙏
+            Namaste, <span className="text-gradient">{firstName}</span> 🙏
           </h1>
           <p className="mt-3 text-indigo-500">
             {isAdmin
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
 
         {/* decorative note glyph */}
         <Music4
-          className="absolute -right-6 -top-6 hidden h-40 w-40 text-saffron-400/15 md:block"
+          className="absolute -right-6 -top-6 hidden h-40 w-40 animate-float text-saffron-400/15 md:block"
           strokeWidth={1}
         />
       </section>
@@ -78,12 +79,13 @@ export default async function DashboardPage() {
         <EmptyState />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {modules.map((module) => (
-            <ModuleCard
-              key={module.id}
-              module={module}
-              lessons={lessonsByModule[module.id] || []}
-            />
+          {modules.map((module, i) => (
+            <Reveal key={module.id} delay={i * 70} className="h-full">
+              <ModuleCard
+                module={module}
+                lessons={lessonsByModule[module.id] || []}
+              />
+            </Reveal>
           ))}
         </div>
       )}
