@@ -32,7 +32,7 @@ export default function AuthForm() {
     // ── Forgot password ──────────────────────────────────────────
     if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${siteUrl}/auth/callback?next=/auth/reset`,
+        redirectTo: `${siteUrl}/auth/reset`,
       });
       setMessage(
         error
