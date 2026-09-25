@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, User, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Loader2, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { SITE_URL } from "@/lib/config";
 
@@ -10,7 +10,7 @@ export default function AuthForm() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [mode, setMode] = useState("signin"); // 'signin' | 'signup'
+  const [mode, setMode] = useState("signin"); // 'signin' | 'signup' | 'forgot'
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,11 +19,34 @@ export default function AuthForm() {
 
   const siteUrl = SITE_URL;
 
-  async function handleEmail(e) {
+  function switchMode(next) {
+    setMode(next);
+    setMessage(null);
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
     setMessage(null);
     setLoading(true);
 
+    // ── Forgot password ──────────────────────────────────────────
+    if (mode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${siteUrl}/auth/callback?next=/auth/reset`,
+      });
+      setMessage(
+        error
+          ? { type: "error", text: error.message }
+          : {
+              type: "success",
+              text: "If an account exists for that email, a reset link is on its way. Check your inbox (and spam).",
+            }
+      );
+      setLoading(false);
+      return;
+    }
+
+    // ── Sign up ──────────────────────────────────────────────────
     if (mode === "signup") {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -36,7 +59,6 @@ export default function AuthForm() {
       if (error) {
         setMessage({ type: "error", text: error.message });
       } else if (data.session) {
-        // Email confirmation is off → the user is signed in immediately.
         router.push("/dashboard");
         router.refresh();
         return;
@@ -47,26 +69,36 @@ export default function AuthForm() {
         });
         setMode("signin");
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) {
-        setMessage({ type: "error", text: error.message });
-      } else {
-        router.push("/dashboard");
-        router.refresh();
-        return;
-      }
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    // ── Sign in ──────────────────────────────────────────────────
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+      setLoading(false);
+    } else {
+      router.push("/dashboard");
+      router.refresh();
+    }
   }
+
+  const cta =
+    mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link";
 
   return (
     <div className="w-full">
-      {/* Email / password */}
-      <form onSubmit={handleEmail} className="space-y-4">
+      {mode === "forgot" && (
+        <button
+          onClick={() => switchMode("signin")}
+          className="mb-4 inline-flex items-center gap-1 text-sm text-indigo-500 transition hover:text-indigo-800"
+        >
+          <ArrowLeft size={15} /> Back to sign in
+        </button>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
         {mode === "signup" && (
           <Field
             icon={<User size={16} />}
@@ -77,6 +109,7 @@ export default function AuthForm() {
             required
           />
         )}
+
         <Field
           icon={<Mail size={16} />}
           type="email"
@@ -85,14 +118,29 @@ export default function AuthForm() {
           onChange={setEmail}
           required
         />
-        <Field
-          icon={<Lock size={16} />}
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={setPassword}
-          required
-        />
+
+        {mode !== "forgot" && (
+          <Field
+            icon={<Lock size={16} />}
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={setPassword}
+            required
+          />
+        )}
+
+        {mode === "signin" && (
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={() => switchMode("forgot")}
+              className="text-sm font-medium text-saffron-500 hover:text-saffron-600"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
 
         {message && (
           <p
@@ -108,22 +156,21 @@ export default function AuthForm() {
 
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading && <Loader2 size={16} className="animate-spin" />}
-          {mode === "signin" ? "Sign in" : "Create account"}
+          {cta}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-indigo-500">
-        {mode === "signin" ? "New to the studio?" : "Already enrolled?"}{" "}
-        <button
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setMessage(null);
-          }}
-          className="font-semibold text-saffron-500 hover:text-saffron-600"
-        >
-          {mode === "signin" ? "Create an account" : "Sign in"}
-        </button>
-      </p>
+      {mode !== "forgot" && (
+        <p className="mt-6 text-center text-sm text-indigo-500">
+          {mode === "signin" ? "New to the studio?" : "Already enrolled?"}{" "}
+          <button
+            onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
+            className="font-semibold text-saffron-500 hover:text-saffron-600"
+          >
+            {mode === "signin" ? "Create an account" : "Sign in"}
+          </button>
+        </p>
+      )}
     </div>
   );
 }
