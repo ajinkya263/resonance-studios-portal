@@ -25,7 +25,7 @@ export default function AuthForm() {
     setLoading(true);
 
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -35,6 +35,11 @@ export default function AuthForm() {
       });
       if (error) {
         setMessage({ type: "error", text: error.message });
+      } else if (data.session) {
+        // Email confirmation is off → the user is signed in immediately.
+        router.push("/dashboard");
+        router.refresh();
+        return;
       } else {
         setMessage({
           type: "success",

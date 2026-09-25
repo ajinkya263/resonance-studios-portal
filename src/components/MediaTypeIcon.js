@@ -1,4 +1,4 @@
-import { Video, Music, FileText, Image as ImageIcon, BookOpen, Activity } from "lucide-react";
+import { Video, Music, FileText, Image as ImageIcon, BookOpen, Activity, ListChecks } from "lucide-react";
 import { interactiveKey } from "@/components/interactive/keys";
 
 /**
@@ -7,7 +7,8 @@ import { interactiveKey } from "@/components/interactive/keys";
  * whole app labels/icons them consistently.
  */
 export function lessonKind(lesson) {
-  if (lesson && interactiveKey(lesson.media_url)) return "interactive";
+  const key = lesson && interactiveKey(lesson.media_url);
+  if (key) return key.startsWith("quiz:") ? "quiz" : "interactive";
   return lesson?.media_type || "text";
 }
 
@@ -20,6 +21,7 @@ export default function MediaTypeIcon({ type, size = 16, className = "" }) {
     image: ImageIcon,
     text: BookOpen,
     interactive: Activity,
+    quiz: ListChecks,
   };
   const Icon = map[type] || BookOpen;
   return <Icon size={size} className={className} />;
@@ -35,6 +37,7 @@ export function mediaTypeLabel(type) {
       image: "Image",
       text: "Reading",
       interactive: "Interactive",
+      quiz: "Quiz",
     }[type] || "Lesson"
   );
 }
