@@ -13,6 +13,7 @@ export default function AuthForm() {
   const [mode, setMode] = useState("signin"); // 'signin' | 'signup' | 'forgot'
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailHint, setEmailHint] = useState(null); // "did you mean ...?"
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null); // { type, text }
@@ -22,16 +23,29 @@ export default function AuthForm() {
   function switchMode(next) {
     setMode(next);
     setMessage(null);
+    setEmailHint(null);
+  }
+
+  function onEmailChange(v) {
+    setEmail(v);
+    setEmailHint(suggestEmail(v));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage(null);
+
+    const cleanEmail = email.trim();
+    if (!isValidEmail(cleanEmail)) {
+      setMessage({ type: "error", text: "Please enter a valid email address." });
+      return;
+    }
+
     setLoading(true);
 
     // ── Forgot password ──────────────────────────────────────────
     if (mode === "forgot") {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: `${siteUrl}/auth/recovery`,
       });
       setMessage(
@@ -49,11 +63,11 @@ export default function AuthForm() {
     // ── Sign up ──────────────────────────────────────────────────
     if (mode === "signup") {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
         options: {
           emailRedirectTo: `${siteUrl}/auth/callback`,
-          data: { full_name: fullName },
+          data: { full_name: fullName.trim() },
         },
       });
       if (error) {
@@ -74,7 +88,10 @@ export default function AuthForm() {
     }
 
     // ── Sign in ──────────────────────────────────────────────────
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
     if (error) {
       setMessage({ type: "error", text: error.message });
       setLoading(false);
@@ -98,7 +115,7 @@ export default function AuthForm() {
         </button>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {mode === "signup" && (
           <Field
             icon={<User size={16} />}
@@ -110,14 +127,29 @@ export default function AuthForm() {
           />
         )}
 
-        <Field
-          icon={<Mail size={16} />}
-          type="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={setEmail}
-          required
-        />
+        <div>
+          <Field
+            icon={<Mail size={16} />}
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={onEmailChange}
+            required
+          />
+          {emailHint && (
+            <button
+              type="button"
+              onClick={() => {
+                setEmail(emailHint);
+                setEmailHint(null);
+              }}
+              className="mt-1.5 pl-1 text-left text-xs text-indigo-500"
+            >
+              Did you mean{" "}
+              <span className="font-semibold text-saffron-600">{emailHint}</span>?
+            </button>
+          )}
+        </div>
 
         {mode !== "forgot" && (
           <Field
@@ -187,4 +219,62 @@ function Field({ icon, value, onChange, ...props }) {
       />
     </label>
   );
+}
+
+/* ── Email validation helpers ──────────────────────────────────────────────── */
+
+// Requires local@domain.tld — no spaces, a dot, and a 2+ char TLD.
+function isValidEmail(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+}
+
+const COMMON_DOMAINS = [
+  "gmail.com",
+  "yahoo.com",
+  "hotmail.com",
+  "outlook.com",
+  "icloud.com",
+  "aol.com",
+  "proton.me",
+  "protonmail.com",
+  "live.com",
+  "msn.com",
+];
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+    }
+  }
+  return dp[m][n];
+}
+
+// Suggest a corrected email if the domain is a near-miss of a common one.
+function suggestEmail(v) {
+  const s = v.trim().toLowerCase();
+  const at = s.lastIndexOf("@");
+  if (at < 1) return null;
+  const local = s.slice(0, at);
+  const domain = s.slice(at + 1);
+  if (!domain || domain.length < 3 || COMMON_DOMAINS.includes(domain)) return null;
+
+  let best = null;
+  let bestDist = 99;
+  for (const d of COMMON_DOMAINS) {
+    const dist = levenshtein(domain, d);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = d;
+    }
+  }
+  return best && bestDist > 0 && bestDist <= 2 ? `${local}@${best}` : null;
 }
