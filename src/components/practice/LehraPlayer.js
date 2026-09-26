@@ -4,13 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Volume2, Gauge } from "lucide-react";
 
 /**
- * Synthesized lehra (nagma) in Raag Kirwani (harmonic minor: komal Ga, komal
- * Dha, shuddh Ni). A full sthāyī + antarā composition over two Teentaal
- * avartans (32 beats), with eighth-note movement and a Ni̱→Sa resolution onto
- * the Sam. Reed-organ (harmonium) tone. Selectable key + laya.
- *
- * Kirwani scale (semitones from Sa): Sa 0 · Re 2 · ga♭ 3 · Ma 5 · Pa 7 ·
- * dha♭ 8 · Ni 11 · Sa' 12.  (lower Ni̱ = -1)
+ * Synthesized lehra (nagma) with a raga selector and ornamentation.
+ * Each note event = [semitone, beats, from?, glideBeats?]. When `from` is given
+ * the pitch glides from it into the note — short glides read as kan (grace),
+ * longer ones as meend. Full sthāyī + antarā over two Teentaal avartans (32
+ * beats), harmonium (reed-organ) tone. Selectable raga, key, laya.
  */
 
 const NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
@@ -19,38 +17,99 @@ const midiLabel = (m) => `${NOTE_NAMES[m % 12]}${Math.floor(m / 12) - 1}`;
 const SA_OPTIONS = [];
 for (let m = 48; m <= 64; m++) SA_OPTIONS.push(m);
 
-// Each event = [semitone-from-Sa, beats]. Halves (0.5) create eighth-note turns.
-// STHĀYĪ — lower/middle register (beats 1–16)
-const STHAYI = [
-  [0, 1], [3, 0.5], [5, 0.5], [7, 1], [3, 0.5], [5, 0.5],
-  [7, 1], [8, 0.5], [11, 0.5], [12, 1], [11, 0.5], [8, 0.5],
-  [7, 1], [5, 0.5], [3, 0.5], [2, 1], [3, 0.5], [5, 0.5],
-  [7, 1], [5, 0.5], [3, 0.5], [2, 0.5], [0, 0.5], [-1, 1],
-];
-// ANTARĀ — upper register, touches taar Sa' (beats 17–32)
-const ANTARA = [
-  [7, 1], [11, 0.5], [12, 0.5], [12, 1], [14, 0.5], [12, 0.5],
-  [15, 1], [14, 0.5], [12, 0.5], [11, 1], [12, 0.5], [11, 0.5],
-  [8, 1], [11, 0.5], [8, 0.5], [7, 1], [5, 0.5], [3, 0.5],
-  [2, 1], [3, 0.5], [5, 0.5], [2, 0.5], [0, 0.5], [-1, 1],
-];
+// ── Nagmas (semitones from Sa; sthāyī then antarā, 16 beats each) ──────────
+const RAGAS = {
+  kirwani: {
+    label: "Kirwani",
+    sthayi: [
+      [0, 1], [3, 1, 2, 0.4], [7, 1, 5, 0.15], [5, 1, 7, 0.5],
+      [7, 1], [8, 0.5, 7, 0.2], [11, 0.5, 8, 0.2], [12, 1, 11, 0.35],
+      [11, 0.5], [8, 0.5, 11, 0.3], [7, 1], [5, 0.5, 7, 0.3], [3, 0.5, 5, 0.3],
+      [2, 1, 3, 0.3], [3, 1], [5, 1, 7, 0.15], [3, 1, 5, 0.4],
+      [2, 0.5], [0, 0.5, 2, 0.25], [-1, 1],
+    ],
+    antara: [
+      [7, 1], [11, 0.5, 8, 0.2], [12, 0.5, 11, 0.2], [12, 1], [14, 1, 12, 0.35],
+      [15, 1, 14, 0.2], [14, 0.5], [12, 0.5, 14, 0.3], [11, 1, 12, 0.3],
+      [12, 0.5, 11, 0.2], [11, 0.5], [8, 1, 11, 0.4], [11, 0.5], [8, 0.5],
+      [7, 1, 8, 0.3], [5, 0.5, 7, 0.3], [3, 0.5, 5, 0.3], [2, 1, 3, 0.3],
+      [3, 0.5], [5, 0.5], [2, 0.5], [0, 0.5, 2, 0.25], [-1, 1],
+    ],
+  },
+  yaman: {
+    label: "Yaman",
+    sthayi: [
+      [2, 1, -1, 0.4], [4, 1, 2, 0.3], [6, 0.5, 4, 0.2], [9, 0.5, 6, 0.2], [7, 1, 9, 0.3],
+      [6, 1], [4, 1, 6, 0.3], [2, 0.5], [4, 0.5], [0, 1, 2, 0.3],
+      [-1, 1], [2, 1, -1, 0.4], [4, 0.5], [6, 0.5, 4, 0.2], [7, 1],
+      [9, 1, 7, 0.3], [6, 1, 9, 0.4], [4, 0.5], [2, 0.5, 4, 0.3], [0, 1],
+    ],
+    antara: [
+      [7, 1], [11, 0.5, 9, 0.2], [12, 0.5, 11, 0.2], [14, 1, 12, 0.3], [16, 1, 14, 0.3],
+      [18, 1, 16, 0.2], [16, 0.5], [14, 0.5, 16, 0.3], [12, 1, 14, 0.3], [11, 1, 12, 0.3],
+      [12, 1], [9, 0.5, 11, 0.3], [7, 0.5, 9, 0.2], [6, 1, 7, 0.3], [4, 1, 6, 0.3],
+      [2, 1, 4, 0.3], [4, 0.5], [2, 0.5], [-1, 1], [0, 1],
+    ],
+  },
+  bhairavi: {
+    label: "Bhairavi",
+    sthayi: [
+      [0, 1], [1, 1, 0, 0.3], [3, 0.5, 1, 0.2], [5, 0.5, 3, 0.2], [3, 1, 5, 0.4],
+      [5, 1], [7, 1, 5, 0.3], [8, 0.5, 7, 0.2], [7, 0.5], [5, 1, 7, 0.3],
+      [3, 1], [1, 0.5, 3, 0.3], [0, 0.5, 1, 0.2], [1, 1], [3, 1, 1, 0.3],
+      [5, 1, 3, 0.3], [3, 1, 5, 0.3], [1, 0.5], [0, 0.5, 1, 0.2], [-2, 1],
+    ],
+    antara: [
+      [7, 1], [8, 0.5, 7, 0.2], [10, 0.5, 8, 0.2], [12, 1, 10, 0.3], [12, 1],
+      [13, 1, 12, 0.2], [15, 0.5, 13, 0.2], [13, 0.5], [12, 1, 13, 0.3], [10, 1, 12, 0.3],
+      [12, 1], [10, 0.5, 12, 0.2], [8, 0.5, 10, 0.2], [7, 1, 8, 0.3], [5, 1, 7, 0.3],
+      [3, 1, 5, 0.3], [1, 0.5], [3, 0.5], [1, 0.5], [0, 0.5, 1, 0.2], [-2, 1],
+    ],
+  },
+  bilawal: {
+    label: "Bilawal",
+    sthayi: [
+      [0, 1], [4, 1, 2, 0.3], [7, 0.5, 5, 0.2], [9, 0.5, 7, 0.2], [7, 1, 9, 0.3],
+      [5, 1], [4, 1, 5, 0.3], [2, 0.5], [4, 0.5], [0, 1, 2, 0.3],
+      [7, 1], [9, 0.5, 7, 0.2], [11, 0.5, 9, 0.2], [12, 1, 11, 0.3], [11, 1, 12, 0.3],
+      [9, 1, 11, 0.3], [7, 1, 9, 0.3], [4, 0.5], [2, 0.5, 4, 0.2], [-1, 1],
+    ],
+    antara: [
+      [7, 1], [11, 0.5, 9, 0.2], [12, 0.5, 11, 0.2], [12, 1], [14, 1, 12, 0.3],
+      [16, 1, 14, 0.2], [14, 0.5], [12, 0.5, 14, 0.3], [11, 1, 12, 0.3], [12, 1],
+      [9, 1, 11, 0.3], [7, 0.5, 9, 0.2], [5, 0.5, 7, 0.2], [4, 1, 5, 0.3], [2, 1, 4, 0.3],
+      [4, 1], [2, 0.5], [0, 0.5, 2, 0.2], [0, 1], [-1, 1],
+    ],
+  },
+};
+
 const MARKERS = { 0: "X", 4: "2", 8: "0", 12: "3" };
 
-// Flatten into events with their matra (0–15) and section (0=sthāyī, 1=antarā).
-const MELODY = (() => {
+function buildMelody(raga) {
   const out = [];
   let pos = 0;
-  [STHAYI, ANTARA].forEach((events, section) => {
-    events.forEach(([s, b]) => {
-      out.push({ s, b, matra: Math.floor(pos) % 16, section });
+  [raga.sthayi, raga.antara].forEach((events, section) => {
+    events.forEach(([s, b, f, g]) => {
+      out.push({
+        s,
+        b,
+        from: f === undefined ? null : f,
+        glide: g === undefined ? 0.3 : g,
+        matra: Math.floor(pos) % 16,
+        section,
+      });
       pos += b;
     });
   });
   return out;
-})();
+}
+const MELODIES = Object.fromEntries(
+  Object.entries(RAGAS).map(([k, r]) => [k, buildMelody(r)])
+);
 
 export default function LehraPlayer() {
   const [playing, setPlaying] = useState(false);
+  const [ragaKey, setRagaKey] = useState("kirwani");
   const [saMidi, setSaMidi] = useState(49);
   const [bpm, setBpm] = useState(80);
   const [volume, setVolume] = useState(0.5);
@@ -64,6 +123,7 @@ export default function LehraPlayer() {
   const volRef = useRef(volume);
   const bpmRef = useRef(bpm);
   const saRef = useRef(saMidi);
+  const melRef = useRef(MELODIES[ragaKey]);
 
   useEffect(() => {
     volRef.current = volume;
@@ -76,6 +136,9 @@ export default function LehraPlayer() {
   useEffect(() => {
     saRef.current = saMidi;
   }, [saMidi]);
+  useEffect(() => {
+    melRef.current = MELODIES[ragaKey];
+  }, [ragaKey]);
   useEffect(() => {
     return () => {
       clearInterval(timerRef.current);
@@ -93,9 +156,12 @@ export default function LehraPlayer() {
     masterRef.current = master;
   }
 
-  function playNote(semi, time, dur, accent) {
+  function playNote(ev, time, dur, beat) {
     const ctx = ctxRef.current;
-    const base = midiToFreq(saRef.current + semi);
+    const target = midiToFreq(saRef.current + ev.s);
+    const startFreq =
+      ev.from === null ? target : midiToFreq(saRef.current + ev.from);
+    const glideSec = Math.min(dur * 0.9, ev.glide * beat);
 
     const oscs = [
       { type: "sawtooth", detune: 0 },
@@ -104,14 +170,16 @@ export default function LehraPlayer() {
     ].map(({ type, detune }) => {
       const o = ctx.createOscillator();
       o.type = type;
-      o.frequency.value = base;
       o.detune.value = detune;
+      o.frequency.setValueAtTime(startFreq, time);
+      if (ev.from !== null)
+        o.frequency.exponentialRampToValueAtTime(target, time + glideSec);
       return o;
     });
 
     const lp = ctx.createBiquadFilter();
     lp.type = "lowpass";
-    lp.frequency.value = Math.min(3600, base * 6);
+    lp.frequency.value = Math.min(3600, target * 6);
     lp.Q.value = 0.4;
 
     const g = ctx.createGain();
@@ -125,7 +193,7 @@ export default function LehraPlayer() {
     lfo.connect(lfoGain);
     oscs.forEach((o) => lfoGain.connect(o.detune));
 
-    const peak = accent ? 0.26 : 0.19;
+    const peak = ev.matra === 0 ? 0.26 : 0.19;
     g.gain.setValueAtTime(0.0001, time);
     g.gain.exponentialRampToValueAtTime(peak, time + Math.min(0.03, dur * 0.2));
     g.gain.setValueAtTime(peak, time + dur * 0.8);
@@ -143,10 +211,11 @@ export default function LehraPlayer() {
     const ctx = ctxRef.current;
     const st = stateRef.current;
     const beat = 60 / bpmRef.current;
+    const mel = melRef.current;
     while (st.nextTime < ctx.currentTime + 0.25) {
-      const ev = MELODY[st.i % MELODY.length];
+      const ev = mel[st.i % mel.length];
       const dur = ev.b * beat;
-      playNote(ev.s, st.nextTime, dur * 0.98, ev.matra === 0);
+      playNote(ev, st.nextTime, dur * 0.98, beat);
       const delayMs = Math.max(0, (st.nextTime - ctx.currentTime) * 1000);
       setTimeout(() => {
         setMatra(ev.matra);
@@ -179,24 +248,48 @@ export default function LehraPlayer() {
     setMatra(-1);
   }
 
+  function chooseRaga(key) {
+    setRagaKey(key);
+    // restart the cycle cleanly on the new nagma if playing
+    if (ctxRef.current && timerRef.current) {
+      melRef.current = MELODIES[key];
+      stateRef.current = { nextTime: ctxRef.current.currentTime + 0.1, i: 0 };
+    }
+  }
+
   return (
     <div className="rounded-2xl bg-gradient-to-br from-indigo-800 to-indigo-900 p-6 text-cream-50 md:p-8">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between">
         <div>
-          <h2 className="font-display text-2xl">Lehra · Raag Kirwani</h2>
+          <h2 className="font-display text-2xl">Lehra · Raag {RAGAS[ragaKey].label}</h2>
           <p className="text-sm text-indigo-300">
             Teentaal nagma in {midiLabel(saMidi)} · {bpm} BPM
           </p>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-            playing
-              ? "bg-saffron-400 text-indigo-900"
-              : "bg-indigo-700 text-indigo-300"
+            playing ? "bg-saffron-400 text-indigo-900" : "bg-indigo-700 text-indigo-300"
           }`}
         >
           {section === 1 ? "Antarā" : "Sthāyī"}
         </span>
+      </div>
+
+      {/* Raga selector */}
+      <div className="mb-5 flex flex-wrap gap-2">
+        {Object.entries(RAGAS).map(([key, r]) => (
+          <button
+            key={key}
+            onClick={() => chooseRaga(key)}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              ragaKey === key
+                ? "bg-saffron-400 text-indigo-900"
+                : "bg-indigo-700 text-indigo-100 hover:bg-indigo-600"
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
       </div>
 
       {/* 16-matra strip */}
