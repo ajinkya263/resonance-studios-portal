@@ -4,9 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Volume2, Gauge } from "lucide-react";
 
 /**
- * Synthesized lehra (nagma) — a harmonium-style melodic loop over Teentaal,
- * for tabla solo/riyaz practice. Reed-organ tone (detuned saws + vibrato),
- * a 16-matra Bilawal phrase resolving to Sa on the Sam. Selectable key + laya.
+ * Synthesized lehra (nagma) in Raag Kirwani (harmonic minor: komal Ga, komal
+ * Dha, shuddh Ni). A full sthāyī + antarā composition over two Teentaal
+ * avartans (32 beats), with eighth-note movement and a Ni̱→Sa resolution onto
+ * the Sam. Reed-organ (harmonium) tone. Selectable key + laya.
+ *
+ * Kirwani scale (semitones from Sa): Sa 0 · Re 2 · ga♭ 3 · Ma 5 · Pa 7 ·
+ * dha♭ 8 · Ni 11 · Sa' 12.  (lower Ni̱ = -1)
  */
 
 const NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
@@ -15,10 +19,35 @@ const midiLabel = (m) => `${NOTE_NAMES[m % 12]}${Math.floor(m / 12) - 1}`;
 const SA_OPTIONS = [];
 for (let m = 48; m <= 64; m++) SA_OPTIONS.push(m);
 
-// 16-matra lehra in Bilawal (semitones from Sa). Peaks at Sa' mid-cycle,
-// descends with Ni̱→Sa resolution back onto the Sam.
-const LEHRA = [0, 2, 4, 5, 7, 7, 9, 7, 12, 11, 9, 7, 5, 4, 2, -1];
+// Each event = [semitone-from-Sa, beats]. Halves (0.5) create eighth-note turns.
+// STHĀYĪ — lower/middle register (beats 1–16)
+const STHAYI = [
+  [0, 1], [3, 0.5], [5, 0.5], [7, 1], [3, 0.5], [5, 0.5],
+  [7, 1], [8, 0.5], [11, 0.5], [12, 1], [11, 0.5], [8, 0.5],
+  [7, 1], [5, 0.5], [3, 0.5], [2, 1], [3, 0.5], [5, 0.5],
+  [7, 1], [5, 0.5], [3, 0.5], [2, 0.5], [0, 0.5], [-1, 1],
+];
+// ANTARĀ — upper register, touches taar Sa' (beats 17–32)
+const ANTARA = [
+  [7, 1], [11, 0.5], [12, 0.5], [12, 1], [14, 0.5], [12, 0.5],
+  [15, 1], [14, 0.5], [12, 0.5], [11, 1], [12, 0.5], [11, 0.5],
+  [8, 1], [11, 0.5], [8, 0.5], [7, 1], [5, 0.5], [3, 0.5],
+  [2, 1], [3, 0.5], [5, 0.5], [2, 0.5], [0, 0.5], [-1, 1],
+];
 const MARKERS = { 0: "X", 4: "2", 8: "0", 12: "3" };
+
+// Flatten into events with their matra (0–15) and section (0=sthāyī, 1=antarā).
+const MELODY = (() => {
+  const out = [];
+  let pos = 0;
+  [STHAYI, ANTARA].forEach((events, section) => {
+    events.forEach(([s, b]) => {
+      out.push({ s, b, matra: Math.floor(pos) % 16, section });
+      pos += b;
+    });
+  });
+  return out;
+})();
 
 export default function LehraPlayer() {
   const [playing, setPlaying] = useState(false);
@@ -26,6 +55,7 @@ export default function LehraPlayer() {
   const [bpm, setBpm] = useState(80);
   const [volume, setVolume] = useState(0.5);
   const [matra, setMatra] = useState(-1);
+  const [section, setSection] = useState(0);
 
   const ctxRef = useRef(null);
   const masterRef = useRef(null);
@@ -88,7 +118,6 @@ export default function LehraPlayer() {
     oscs.forEach((o) => o.connect(g));
     g.connect(lp).connect(masterRef.current);
 
-    // harmonium "breath" vibrato
     const lfo = ctx.createOscillator();
     lfo.frequency.value = 5.5;
     const lfoGain = ctx.createGain();
@@ -98,8 +127,8 @@ export default function LehraPlayer() {
 
     const peak = accent ? 0.26 : 0.19;
     g.gain.setValueAtTime(0.0001, time);
-    g.gain.exponentialRampToValueAtTime(peak, time + 0.03);
-    g.gain.setValueAtTime(peak, time + dur * 0.82);
+    g.gain.exponentialRampToValueAtTime(peak, time + Math.min(0.03, dur * 0.2));
+    g.gain.setValueAtTime(peak, time + dur * 0.8);
     g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
 
     lfo.start(time);
@@ -114,12 +143,16 @@ export default function LehraPlayer() {
     const ctx = ctxRef.current;
     const st = stateRef.current;
     const beat = 60 / bpmRef.current;
-    while (st.nextTime < ctx.currentTime + 0.2) {
-      const idx = st.i % 16;
-      playNote(LEHRA[idx], st.nextTime, beat * 0.98, idx === 0);
+    while (st.nextTime < ctx.currentTime + 0.25) {
+      const ev = MELODY[st.i % MELODY.length];
+      const dur = ev.b * beat;
+      playNote(ev.s, st.nextTime, dur * 0.98, ev.matra === 0);
       const delayMs = Math.max(0, (st.nextTime - ctx.currentTime) * 1000);
-      setTimeout(() => setMatra(idx), delayMs);
-      st.nextTime += beat;
+      setTimeout(() => {
+        setMatra(ev.matra);
+        setSection(ev.section);
+      }, delayMs);
+      st.nextTime += dur;
       st.i++;
     }
   }
@@ -129,7 +162,7 @@ export default function LehraPlayer() {
     const ctx = ctxRef.current;
     if (ctx.state === "suspended") ctx.resume();
     masterRef.current.gain.setTargetAtTime(volRef.current, ctx.currentTime, 0.05);
-    stateRef.current = { nextTime: ctx.currentTime + 0.12, i: 0 };
+    stateRef.current = { nextTime: ctx.currentTime + 0.15, i: 0 };
     timerRef.current = setInterval(schedule, 30);
     setPlaying(true);
   }
@@ -150,19 +183,25 @@ export default function LehraPlayer() {
     <div className="rounded-2xl bg-gradient-to-br from-indigo-800 to-indigo-900 p-6 text-cream-50 md:p-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="font-display text-2xl">Lehra</h2>
+          <h2 className="font-display text-2xl">Lehra · Raag Kirwani</h2>
           <p className="text-sm text-indigo-300">
             Teentaal nagma in {midiLabel(saMidi)} · {bpm} BPM
           </p>
         </div>
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-saffron-400 text-indigo-900">
-          🎹
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+            playing
+              ? "bg-saffron-400 text-indigo-900"
+              : "bg-indigo-700 text-indigo-300"
+          }`}
+        >
+          {section === 1 ? "Antarā" : "Sthāyī"}
         </span>
       </div>
 
       {/* 16-matra strip */}
       <div className="mb-6 grid grid-cols-8 gap-1.5">
-        {LEHRA.map((_, i) => (
+        {Array.from({ length: 16 }).map((_, i) => (
           <div
             key={i}
             className={`relative grid aspect-square place-items-center rounded-lg border text-xs transition-all duration-100 ${
