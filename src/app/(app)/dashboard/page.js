@@ -1,14 +1,16 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getModulesForCurrentUser } from "@/lib/access";
+import { getModulesForCurrentUser, getProgressForCurrentUser } from "@/lib/access";
 import ModuleCard from "@/components/ModuleCard";
 import Reveal from "@/components/Reveal";
-import { Sparkles, Music4 } from "lucide-react";
+import { Sparkles, Music4, PlayCircle } from "lucide-react";
 
 export const metadata = { title: "Dashboard — Resonance Studios" };
 
 export default async function DashboardPage() {
   const { profile, isAdmin, daysEnrolled, modules } =
     await getModulesForCurrentUser();
+  const { completedIds, streak } = await getProgressForCurrentUser();
 
   // Fetch lessons for every UNLOCKED module in one query, then group them.
   const unlockedIds = modules.filter((m) => m.unlocked).map((m) => m.id);
@@ -26,6 +28,19 @@ export default async function DashboardPage() {
       (acc[l.module_id] ||= []).push(l);
       return acc;
     }, {});
+  }
+
+  // First not-yet-completed lesson in an unlocked module → "resume".
+  let resumeId = null;
+  for (const m of modules) {
+    if (!m.unlocked) continue;
+    const found = (lessonsByModule[m.id] || []).find(
+      (l) => !completedIds.has(l.id)
+    );
+    if (found) {
+      resumeId = found.id;
+      break;
+    }
   }
 
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
@@ -52,11 +67,18 @@ export default async function DashboardPage() {
           </p>
 
           {!isAdmin && (
-            <div className="mt-6 flex flex-wrap gap-6">
-              <Stat label="Days enrolled" value={daysEnrolled} />
+            <div className="mt-6 flex flex-wrap items-center gap-6">
+              <Stat label="Day streak" value={`${streak}🔥`} />
+              <Stat label="Lessons done" value={completedIds.size} />
               <Stat label="Modules unlocked" value={unlockedCount} />
-              <Stat label="Total modules" value={modules.length} />
+              <Stat label="Days enrolled" value={daysEnrolled} />
             </div>
+          )}
+
+          {resumeId && (
+            <Link href={`/lessons/${resumeId}`} className="btn-primary mt-6">
+              <PlayCircle size={18} /> Continue practicing
+            </Link>
           )}
         </div>
 
@@ -79,14 +101,22 @@ export default async function DashboardPage() {
         <EmptyState />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {modules.map((module, i) => (
-            <Reveal key={module.id} delay={i * 70} className="h-full">
-              <ModuleCard
-                module={module}
-                lessons={lessonsByModule[module.id] || []}
-              />
-            </Reveal>
-          ))}
+          {modules.map((module, i) => {
+            const lessons = lessonsByModule[module.id] || [];
+            const doneCount = lessons.filter((l) =>
+              completedIds.has(l.id)
+            ).length;
+            return (
+              <Reveal key={module.id} delay={i * 70} className="h-full">
+                <ModuleCard
+                  module={module}
+                  lessons={lessons}
+                  completedIds={completedIds}
+                  doneCount={doneCount}
+                />
+              </Reveal>
+            );
+          })}
         </div>
       )}
     </div>

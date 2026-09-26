@@ -9,15 +9,21 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function LessonPage({ params }) {
-  const { lesson, module, siblings, error } = await getLessonIfUnlocked(
-    params.id
-  );
+  const { lesson, module, siblings, completed, error } =
+    await getLessonIfUnlocked(params.id);
 
   if (error) {
     return <LessonBlocked reason={error} />;
   }
 
-  return <LessonViewer lesson={lesson} module={module} siblings={siblings} />;
+  return (
+    <LessonViewer
+      lesson={lesson}
+      module={module}
+      siblings={siblings}
+      completed={completed}
+    />
+  );
 }
 
 /** Friendly gate for locked / missing lessons. */

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import MediaTypeIcon, { mediaTypeLabel, lessonKind } from "@/components/MediaTypeIcon";
 import { renderInteractive } from "@/components/interactive/registry";
+import CompleteButton from "@/components/CompleteButton";
 
 /**
  * Renders a lesson's body according to its media_type:
@@ -25,7 +26,7 @@ import { renderInteractive } from "@/components/interactive/registry";
  *   module   — { id, title }
  *   siblings — [{ id, title, media_type }] for prev/next nav within the module
  */
-export default function LessonViewer({ lesson, module, siblings = [] }) {
+export default function LessonViewer({ lesson, module, siblings = [], completed = false }) {
   const idx = siblings.findIndex((s) => s.id === lesson.id);
   const prev = idx > 0 ? siblings[idx - 1] : null;
   const next = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1] : null;
@@ -83,6 +84,11 @@ export default function LessonViewer({ lesson, module, siblings = [] }) {
           <RichText content={lesson.text_content} />
         </div>
       )}
+
+      {/* Mark complete */}
+      <div className="mt-8 flex justify-center">
+        <CompleteButton lessonId={lesson.id} initialCompleted={completed} />
+      </div>
 
       {/* Prev / Next */}
       <nav className="mt-8 flex items-center justify-between gap-4">

@@ -1,15 +1,22 @@
 import Link from "next/link";
-import { Lock, Clock, ChevronRight, Sparkles } from "lucide-react";
+import { Lock, Clock, ChevronRight, Sparkles, CheckCircle2 } from "lucide-react";
 import MediaTypeIcon, { mediaTypeLabel, lessonKind } from "@/components/MediaTypeIcon";
 
 /**
  * A single module card for the dashboard grid.
  *
  * Props:
- *   module  — annotated module (unlocked, unlocksInDays, unlockedByOverride)
- *   lessons — array of lessons for this module (empty for locked modules)
+ *   module       — annotated module (unlocked, unlocksInDays, unlockedByOverride)
+ *   lessons      — array of lessons for this module (empty for locked modules)
+ *   completedIds — Set of completed lesson ids for the current user
+ *   doneCount    — number of completed lessons in this module
  */
-export default function ModuleCard({ module, lessons = [] }) {
+export default function ModuleCard({
+  module,
+  lessons = [],
+  completedIds = new Set(),
+  doneCount = 0,
+}) {
   if (!module.unlocked) {
     return (
       <article
@@ -34,6 +41,8 @@ export default function ModuleCard({ module, lessons = [] }) {
     );
   }
 
+  const allDone = lessons.length > 0 && doneCount === lessons.length;
+
   return (
     <article
       id={`module-${module.id}`}
@@ -43,39 +52,72 @@ export default function ModuleCard({ module, lessons = [] }) {
       <span className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-saffron-400 via-saffron-300 to-transparent transition-transform duration-500 group-hover:scale-x-100" />
       <div className="mb-1 flex items-start justify-between gap-3">
         <h3 className="font-display text-xl text-indigo-800">{module.title}</h3>
-        {module.unlockedByOverride && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-saffron-100 px-2.5 py-1 text-[11px] font-semibold text-saffron-600">
-            <Sparkles size={12} /> Early access
+        {allDone ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">
+            <CheckCircle2 size={12} /> Done
           </span>
+        ) : (
+          module.unlockedByOverride && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-saffron-100 px-2.5 py-1 text-[11px] font-semibold text-saffron-600">
+              <Sparkles size={12} /> Early access
+            </span>
+          )
         )}
       </div>
       <p className="text-sm text-indigo-500">{module.description}</p>
 
+      {/* Progress bar */}
+      {lessons.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-1 flex items-center justify-between text-[11px] text-indigo-400">
+            <span>{allDone ? "Completed 🎉" : "Progress"}</span>
+            <span>
+              {doneCount}/{lessons.length}
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-cream-200">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-saffron-400 to-saffron-500 transition-all duration-700"
+              style={{ width: `${(doneCount / lessons.length) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="mt-5 flex-1 space-y-1.5">
         {lessons.length === 0 && (
-          <p className="text-sm italic text-indigo-400">
-            Lessons coming soon.
-          </p>
+          <p className="text-sm italic text-indigo-400">Lessons coming soon.</p>
         )}
-        {lessons.map((lesson) => (
-          <Link
-            key={lesson.id}
-            href={`/lessons/${lesson.id}`}
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-indigo-700 transition-all duration-200 hover:translate-x-1 hover:bg-cream-100"
-          >
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-indigo-50 text-indigo-600">
-              <MediaTypeIcon type={lessonKind(lesson)} size={15} />
-            </span>
-            <span className="flex-1 truncate">{lesson.title}</span>
-            <span className="text-[11px] uppercase tracking-wide text-indigo-300">
-              {mediaTypeLabel(lessonKind(lesson))}
-            </span>
-            <ChevronRight
-              size={16}
-              className="text-indigo-300 transition group-hover:translate-x-0.5"
-            />
-          </Link>
-        ))}
+        {lessons.map((lesson) => {
+          const done = completedIds?.has(lesson.id);
+          return (
+            <Link
+              key={lesson.id}
+              href={`/lessons/${lesson.id}`}
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-indigo-700 transition-all duration-200 hover:translate-x-1 hover:bg-cream-100"
+            >
+              <span
+                className={`grid h-7 w-7 shrink-0 place-items-center rounded-md ${
+                  done ? "bg-green-50 text-green-600" : "bg-indigo-50 text-indigo-600"
+                }`}
+              >
+                {done ? (
+                  <CheckCircle2 size={15} />
+                ) : (
+                  <MediaTypeIcon type={lessonKind(lesson)} size={15} />
+                )}
+              </span>
+              <span className="flex-1 truncate">{lesson.title}</span>
+              <span className="text-[11px] uppercase tracking-wide text-indigo-300">
+                {mediaTypeLabel(lessonKind(lesson))}
+              </span>
+              <ChevronRight
+                size={16}
+                className="text-indigo-300 transition group-hover:translate-x-0.5"
+              />
+            </Link>
+          );
+        })}
       </div>
     </article>
   );

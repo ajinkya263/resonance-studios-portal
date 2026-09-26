@@ -131,5 +131,62 @@ export async function getLessonIfUnlocked(lessonId) {
     .eq("module_id", lesson.module_id)
     .order("order_index", { ascending: true });
 
-  return { lesson, module: parentModule, siblings: siblings ?? [] };
+  // Has the current user already marked this lesson complete?
+  const { data: prog } = await supabase
+    .from("lesson_progress")
+    .select("lesson_id")
+    .eq("user_id", user.id)
+    .eq("lesson_id", lessonId)
+    .maybeSingle();
+
+  return {
+    lesson,
+    module: parentModule,
+    siblings: siblings ?? [],
+    completed: !!prog,
+  };
+}
+
+/** Days-in-a-row streak from a list of completion timestamps (UTC day granularity). */
+function computeStreak(timestamps) {
+  if (!timestamps.length) return 0;
+  const days = new Set(
+    timestamps.map((t) => new Date(t).toISOString().slice(0, 10))
+  );
+  const dayMs = 86400000;
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - dayMs).toISOString().slice(0, 10);
+  if (!days.has(today) && !days.has(yesterday)) return 0;
+
+  let cursor = days.has(today) ? new Date() : new Date(Date.now() - dayMs);
+  let streak = 0;
+  while (days.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor = new Date(cursor.getTime() - dayMs);
+  }
+  return streak;
+}
+
+/**
+ * Progress for the current user: the set of completed lesson ids and the
+ * current riyaz (practice) streak in days.
+ */
+export async function getProgressForCurrentUser() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { completedIds: new Set(), streak: 0, total: 0 };
+
+  const { data: rows = [] } = await supabase
+    .from("lesson_progress")
+    .select("lesson_id, completed_at")
+    .eq("user_id", user.id);
+
+  const list = rows ?? [];
+  return {
+    completedIds: new Set(list.map((r) => r.lesson_id)),
+    streak: computeStreak(list.map((r) => r.completed_at)),
+    total: list.length,
+  };
 }

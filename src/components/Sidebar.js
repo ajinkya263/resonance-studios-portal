@@ -10,6 +10,8 @@ import {
   X,
   Music4,
   ShieldCheck,
+  Drum,
+  PencilRuler,
 } from "lucide-react";
 import SignOutButton from "@/components/SignOutButton";
 
@@ -62,6 +64,13 @@ export default function Sidebar({ modules = [], profile, isAdmin = false }) {
             active={pathname === "/dashboard"}
             onClick={() => setOpen(false)}
           />
+          <NavItem
+            href="/practice"
+            icon={<Drum size={18} />}
+            label="Practice Studio"
+            active={pathname === "/practice"}
+            onClick={() => setOpen(false)}
+          />
 
           <p className="px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-indigo-300">
             Modules
@@ -108,6 +117,13 @@ export default function Sidebar({ modules = [], profile, isAdmin = false }) {
                 active={pathname === "/admin"}
                 onClick={() => setOpen(false)}
                 badge="ADMIN"
+              />
+              <NavItem
+                href="/admin/content"
+                icon={<PencilRuler size={18} />}
+                label="Content Editor"
+                active={pathname === "/admin/content"}
+                onClick={() => setOpen(false)}
               />
             </>
           )}
